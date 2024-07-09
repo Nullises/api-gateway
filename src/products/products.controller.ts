@@ -11,7 +11,7 @@ import {
   ParseIntPipe,
 } from '@nestjs/common';
 import { ClientProxy, RpcException } from '@nestjs/microservices';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, catchError } from 'rxjs';
 import { PaginationDto } from 'src/common';
 import { PRODUCT_SERVICE } from 'src/config';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -33,17 +33,19 @@ export class ProductsController {
 
   @Get()
   async findAllProducts(@Query() paginationDto: PaginationDto) {
-    try {
-      return await this.productsClient.send(
+    return await this.productsClient
+      .send(
         { cmd: 'find_all_products' },
         {
           limit: paginationDto.limit,
           page: paginationDto.page,
         },
+      )
+      .pipe(
+        catchError((error) => {
+          throw new RpcException(error);
+        }),
       );
-    } catch (error) {
-      throw new RpcException(error);
-    }
   }
 
   @Get('/prices')
@@ -81,27 +83,28 @@ export class ProductsController {
 
   @Delete(':id')
   async deleteProduct(@Param('id', ParseIntPipe) id: number) {
-    try {
-      return await this.productsClient.send(
+    return await this.productsClient
+      .send(
         { cmd: 'delete_product' },
         {
           id,
         },
+      )
+      .pipe(
+        catchError((error) => {
+          throw new RpcException(error);
+        }),
       );
-    } catch (error) {
-      throw new RpcException(error);
-    }
   }
 
   @Patch()
   async patchProduct(@Body() updateProductDto: UpdateProductDto) {
-    try {
-      return await this.productsClient.send(
-        { cmd: 'update_product' },
-        updateProductDto,
+    return await this.productsClient
+      .send({ cmd: 'update_product' }, updateProductDto)
+      .pipe(
+        catchError((error) => {
+          throw new RpcException(error);
+        }),
       );
-    } catch (error) {
-      throw new RpcException(error);
-    }
   }
 }
