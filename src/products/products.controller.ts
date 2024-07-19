@@ -13,27 +13,22 @@ import {
 import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { firstValueFrom, catchError } from 'rxjs';
 import { PaginationDto } from 'src/common';
-import { PRODUCT_SERVICE } from 'src/config';
+import { NATS_SERVICE } from 'src/config';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 
 @Controller('products')
 export class ProductsController {
-  constructor(
-    @Inject(PRODUCT_SERVICE) private readonly productsClient: ClientProxy,
-  ) {}
+  constructor(@Inject(NATS_SERVICE) private readonly client: ClientProxy) {}
 
   @Post()
   createProduct(@Body() createProductDto: CreateProductDto) {
-    return this.productsClient.send(
-      { cmd: 'create_product' },
-      createProductDto,
-    );
+    return this.client.send({ cmd: 'create_product' }, createProductDto);
   }
 
   @Get()
   async findAllProducts(@Query() paginationDto: PaginationDto) {
-    return await this.productsClient
+    return await this.client
       .send(
         { cmd: 'find_all_products' },
         {
@@ -52,7 +47,7 @@ export class ProductsController {
   async findProductsByPrice(@Query() query) {
     try {
       return await firstValueFrom(
-        this.productsClient.send(
+        this.client.send(
           { cmd: 'find_product_by_price' },
           {
             price: query.price,
@@ -69,7 +64,7 @@ export class ProductsController {
   async findOneProduct(@Param('id', ParseIntPipe) id: number) {
     try {
       return await firstValueFrom(
-        this.productsClient.send(
+        this.client.send(
           { cmd: 'find_product_by_id' },
           {
             id,
@@ -83,7 +78,7 @@ export class ProductsController {
 
   @Delete(':id')
   async deleteProduct(@Param('id', ParseIntPipe) id: number) {
-    return await this.productsClient
+    return await this.client
       .send(
         { cmd: 'delete_product' },
         {
@@ -99,7 +94,7 @@ export class ProductsController {
 
   @Patch()
   async patchProduct(@Body() updateProductDto: UpdateProductDto) {
-    return await this.productsClient
+    return await this.client
       .send({ cmd: 'update_product' }, updateProductDto)
       .pipe(
         catchError((error) => {
